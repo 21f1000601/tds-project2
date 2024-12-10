@@ -42,17 +42,17 @@ The statistics indicate a general trend towards moderate life satisfaction ('Lif
 4. **Policy Initiatives for Corruption Reduction**: Given the concerns about corruption, initiatives aimed at increasing transparency and accountability could help improve overall well-being, foster trust in institutions, and subsequently enhance life satisfaction metrics.
 
 In conclusion, this dataset provides valuable insights into the socio-economic landscape of the countries recorded, highlighting both strengths in social structures and potential areas that require immediate attention.
-
 ## Visualizations
-![correlation_matrix.png](correlation_matrix.png)
-![Country name_distribution.png](Country name_distribution.png)
-![year_distribution.png](year_distribution.png)
-![Life Ladder_distribution.png](Life Ladder_distribution.png)
-![Log GDP per capita_distribution.png](Log GDP per capita_distribution.png)
-![Social support_distribution.png](Social support_distribution.png)
-![Healthy life expectancy at birth_distribution.png](Healthy life expectancy at birth_distribution.png)
-![Freedom to make life choices_distribution.png](Freedom to make life choices_distribution.png)
-![Generosity_distribution.png](Generosity_distribution.png)
-![Perceptions of corruption_distribution.png](Perceptions of corruption_distribution.png)
-![Positive affect_distribution.png](Positive affect_distribution.png)
-![Negative affect_distribution.png](Negative affect_distribution.png)
+
+![correlation_matrix.png](images/correlation_matrix.png)
+![Country name_distribution.png](images/Country%20name_distribution.png)
+![year_distribution.png](images/year_distribution.png)
+![Life Ladder_distribution.png](images/Life%20Ladder_distribution.png)
+![Log GDP per capita_distribution.png](images/Log%20GDP%20per%20capita_distribution.png)
+![Social support_distribution.png](images/Social%20support_distribution.png)
+![Healthy life expectancy at birth_distribution.png](images/Healthy%20life%20expectancy%20at%20birth_distribution.png)
+![Freedom to make life choices_distribution.png](images/Freedom%20to%20make%20life%20choices_distribution.png)
+![Generosity_distribution.png](images/Generosity_distribution.png)
+![Perceptions of corruption_distribution.png](images/Perceptions%20of%20corruption_distribution.png)
+![Positive affect_distribution.png](images/Positive%20affect_distribution.png)
+![Negative affect_distribution.png](images/Negative%20affect_distribution.png)
