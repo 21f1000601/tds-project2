@@ -74,6 +74,8 @@ def perform_analysis(df):
         "data_types": df.dtypes.to_dict(),
         "missing_values": df.isnull().sum().to_dict(),
         "summary_stats": df.describe(include='all').to_dict(),
+        "correlations": df.corr().to_dict(),  # Added correlations
+        "unique_values": {col: df[col].nunique() for col in df.columns},  # Added unique value counts
     }
     logging.debug(f"Analysis results: {analysis}")
     return analysis
@@ -105,6 +107,16 @@ def visualize_data(df, output_folder):
         charts.append(chart_path)
         plt.close()
 
+    # Boxplots for numeric columns
+    for column in numeric_columns:
+        plt.figure(figsize=(8, 6))
+        sns.boxplot(x=df[column])
+        chart_path = os.path.join(output_folder, f"{column}_boxplot.png")
+        plt.title(f"Boxplot of {column}")
+        plt.savefig(chart_path)
+        charts.append(chart_path)
+        plt.close()
+
     logging.info(f"Generated {len(charts)} charts.")
     return charts
 
@@ -119,6 +131,8 @@ def query_llm(analysis):
             f"- Data Types: {analysis['data_types']}\n"
             f"- Missing Values: {analysis['missing_values']}\n"
             f"- Summary Statistics: {analysis['summary_stats']}\n"
+            f"- Correlations: {analysis['correlations']}\n"
+            f"- Unique Values per Column: {analysis['unique_values']}\n"
             f"Generate a narrative describing the dataset, key insights, and recommended actions."
         )
 
