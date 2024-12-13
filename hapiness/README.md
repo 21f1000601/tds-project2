@@ -55,7 +55,7 @@ The dataset consists of 2,358 records across 11 columns, providing a comprehensi
 By taking these actions, policymakers and researchers can develop targeted initiatives that improve overall life satisfaction while addressing the nuanced disparities laid out in this extensive dataset.
 
 ## Visualizations
-![happiness/correlation_matrix.png](happiness/correlation_matrix.png)
+![happiness/correlation_matrix.png](correlation_matrix.png)
 ![happiness/Country name_distribution.png](happiness/Country name_distribution.png)
 ![happiness/year_distribution.png](happiness/year_distribution.png)
 ![happiness/Life Ladder_distribution.png](happiness/Life Ladder_distribution.png)
