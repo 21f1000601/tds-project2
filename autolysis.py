@@ -99,6 +99,10 @@ def visualize_data(df, output_folder):
 
     # Histograms for numeric columns
     for column in numeric_columns:
+        if numeric_columns[column].dropna().empty:
+            logging.warning(f"Skipping histogram for column '{column}' as it has no valid data.")
+            continue
+
         plt.figure(figsize=(8, 6))
         sns.histplot(df[column], kde=True, bins=30)
         chart_path = os.path.join(output_folder, f"{column}_distribution.png")
@@ -109,13 +113,20 @@ def visualize_data(df, output_folder):
 
     # Boxplots for numeric columns
     for column in numeric_columns:
+        if numeric_columns[column].dropna().empty:
+            logging.warning(f"Skipping boxplot for column '{column}' as it has no valid data.")
+            continue
+
         plt.figure(figsize=(8, 6))
-        sns.boxplot(x=df[column])
-        chart_path = os.path.join(output_folder, f"{column}_boxplot.png")
-        plt.title(f"Boxplot of {column}")
-        plt.savefig(chart_path)
-        charts.append(chart_path)
-        plt.close()
+        try:
+            sns.boxplot(x=df[column])
+            chart_path = os.path.join(output_folder, f"{column}_boxplot.png")
+            plt.title(f"Boxplot of {column}")
+            plt.savefig(chart_path)
+            charts.append(chart_path)
+            plt.close()
+        except ValueError as e:
+            logging.warning(f"Failed to create boxplot for column '{column}'. Error: {e}")
 
     logging.info(f"Generated {len(charts)} charts.")
     return charts
