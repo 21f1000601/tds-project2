@@ -437,7 +437,7 @@ if __name__ == "__main__":
     # If we're continuing from where we left off, read the results
     results = []
     if os.getenv("CONTINUE") == "Y":
-        result = pd.read_csv(os.path.join(root, "results.csv"))
+        result = pd.read_csv(os.path.join(root, "hacked_results.csv"))
         # Remove results for explicitly requested submissions
         results = [result[~result.id.isin(requested_ids)]]
         ids = results[0].id.unique()
@@ -509,6 +509,6 @@ if __name__ == "__main__":
             out = pd.concat(results)
             out["correct"] = out.apply(lambda row: row.marks == row.total, axis=1).astype(int)
             out["reason"] = out.apply(lambda row: row.reason.replace("\n", " "), axis=1)
-            out.to_csv(os.path.join(root, "results.csv"), index=False)
+            out.to_csv(os.path.join(root, "hacked_results.csv"), index=False)
 
-    log(f"[green]Results[/green]: {os.path.join(root, 'results.csv')}", last=True)
+    log(f"[green]Results[/green]: {os.path.join(root, 'hacked_results.csv')}", last=True)
