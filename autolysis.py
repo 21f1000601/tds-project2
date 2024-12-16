@@ -4,215 +4,201 @@
 #     "pandas",
 #     "matplotlib",
 #     "seaborn",
+#     "chardet",
 #     "openai",
 #     "requests",
 # ]
 # ///
 
-
 import os
 import sys
+import json
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import chardet
 import requests
-import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
+def detect_file_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        result = chardet.detect(f.read())
+    return result['encoding']
 
-# Set your OpenAI API key
-API_TOKEN = os.getenv("AIPROXY_TOKEN")
-if not API_TOKEN:
-    logging.error("AIPROXY_TOKEN environment variable not set.")
-    sys.exit(1)
+def load_data(file_path, encoding):
+    return pd.read_csv(file_path, encoding=encoding)
 
-def load_dataset(filepath):
-    """Load a dataset from a CSV file with robust error handling."""
-    try:
-        logging.info(f"Attempting to load dataset from {filepath} with UTF-8 encoding.")
-        return pd.read_csv(filepath, encoding='utf-8')
-    except UnicodeDecodeError:
-        logging.warning("UTF-8 decoding failed. Retrying with 'latin1' encoding...")
-        try:
-            return pd.read_csv(filepath, encoding='latin1')
-        except Exception as e:
-            logging.error(f"Failed to load dataset with 'latin1' encoding. Error: {e}")
-            raise ValueError(f"Failed to load the dataset. Error: {e}")
-    except Exception as e:
-        logging.error(f"Unexpected error occurred while loading dataset. Error: {e}")
-        raise ValueError(f"Failed to load the dataset. Error: {e}")
-
-def preprocess_data(df):
-    """Preprocess the dataset by converting columns to numeric where applicable and handling missing values."""
-    logging.info("Preprocessing data...")
-    for column in df.select_dtypes(include=["object"]):
-        try:
-            logging.debug(f"Attempting to convert column '{column}' to numeric.")
-            df[column] = pd.to_numeric(df[column], errors="coerce")
-        except Exception as e:
-            logging.warning(f"Could not convert column '{column}' to numeric. Error: {e}")
-
-    # Drop rows with excessive NaN values
-    threshold = len(df.columns) // 2
-    original_shape = df.shape
-    df.dropna(thresh=threshold, inplace=True)
-    logging.info(f"Dropped rows with more than {threshold} missing values. Original shape: {original_shape}, New shape: {df.shape}")
-
-    return df
-
-def perform_analysis(df):
-    """Generate a summary analysis of the dataset."""
-    logging.info("Performing data analysis...")
-    analysis = {
-        "shape": df.shape,
-        "columns": list(df.columns),
-        "data_types": df.dtypes.to_dict(),
-        "missing_values": df.isnull().sum().to_dict(),
-        "summary_stats": df.describe(include='all').to_dict(),
-        "correlations": df.corr().to_dict(),  # Added correlations
-        "unique_values": {col: df[col].nunique() for col in df.columns},  # Added unique value counts
+def summarize_data(data):
+    return {
+        "row_count": len(data),
+        "column_count": len(data.columns),
+        "missing_values": data.isnull().sum().to_dict(),
+        "data_types": data.dtypes.astype(str).to_dict(),
     }
-    logging.debug(f"Analysis results: {analysis}")
-    return analysis
 
-def visualize_data(df, output_folder):
-    """Generate and save visualizations for the dataset."""
-    logging.info("Generating visualizations...")
-    charts = []
-    sns.set(style="whitegrid")
+def create_visualizations(data, output_dir):
+    image_paths = []
+    numeric_data = data.select_dtypes(include=[np.number])
 
-    # Correlation matrix
-    numeric_columns = df.select_dtypes(include=["number"])
-    if len(numeric_columns.columns) >= 2:
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(numeric_columns.corr(), annot=True, fmt=".2f", cmap="coolwarm")
-        chart_path = os.path.join(output_folder, "correlation_matrix.png")
-        plt.title("Correlation Matrix")
-        plt.savefig(chart_path)
-        charts.append(chart_path)
+    if not numeric_data.empty:
+        # Heatmap
+        sns.heatmap(numeric_data.corr(), annot=True, fmt=".2f", cmap="coolwarm")
+        heatmap_path = os.path.join(output_dir, "correlation_heatmap.png")
+        plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
         plt.close()
+        image_paths.append(heatmap_path)
 
-    # Histograms for numeric columns
-    for column in numeric_columns:
-        if numeric_columns[column].dropna().empty:
-            logging.warning(f"Skipping histogram for column '{column}' as it has no valid data.")
-            continue
-
-        plt.figure(figsize=(8, 6))
-        sns.histplot(df[column], kde=True, bins=30)
-        chart_path = os.path.join(output_folder, f"{column}_distribution.png")
-        plt.title(f"Distribution of {column}")
-        plt.savefig(chart_path)
-        charts.append(chart_path)
-        plt.close()
-
-    # Boxplots for numeric columns
-    for column in numeric_columns:
-        if numeric_columns[column].dropna().empty:
-            logging.warning(f"Skipping boxplot for column '{column}' as it has no valid data.")
-            continue
-
-        plt.figure(figsize=(8, 6))
-        try:
-            sns.boxplot(x=df[column])
-            chart_path = os.path.join(output_folder, f"{column}_boxplot.png")
-            plt.title(f"Boxplot of {column}")
-            plt.savefig(chart_path)
-            charts.append(chart_path)
+        # Histogram for each column
+        for column in numeric_data.columns:
+            sns.histplot(numeric_data[column], kde=True, bins=30)
+            hist_path = os.path.join(output_dir, f"{column}_distribution.png")
+            plt.savefig(hist_path, dpi=300, bbox_inches="tight")
             plt.close()
-        except ValueError as e:
-            logging.warning(f"Failed to create boxplot for column '{column}'. Error: {e}")
+            image_paths.append(hist_path)
 
-    logging.info(f"Generated {len(charts)} charts.")
-    return charts
+        # Pairplot
+        pairplot_path = os.path.join(output_dir, "pairplot_numeric_data.png")
+        sns.pairplot(numeric_data, diag_kind="kde")
+        plt.savefig(pairplot_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        image_paths.append(pairplot_path)
 
-def query_llm(analysis):
-    """Query the LLM for a narrative based on the analysis."""
-    logging.info("Querying LLM for dataset narrative...")
-    try:
+    return image_paths
+
+def query_llm_for_suggestions(summary):
+    prompt = (
+        f"You are a data scientist. Here is a summary of a dataset: {json.dumps(summary, indent=2)}\n"
+        "Suggest additional analyses or visualizations that could be insightful."
+    )
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": os.getenv("AIPROXY_TOKEN")
+    }
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": [{"role": "user", "content": prompt}]
+    }
+    response = requests.post(
+        "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
+        headers=headers, json=payload
+    )
+    response.raise_for_status()
+    return response.json()['choices'][0]['message']['content']
+
+def execute_llm_tasks(tasks, data, output_dir):
+    results = []
+
+    for task in tasks:
         prompt = (
-            f"Here is a dataset analysis:\n"
-            f"- Shape: {analysis['shape']}\n"
-            f"- Columns: {analysis['columns']}\n"
-            f"- Data Types: {analysis['data_types']}\n"
-            f"- Missing Values: {analysis['missing_values']}\n"
-            f"- Summary Statistics: {analysis['summary_stats']}\n"
-            f"- Correlations: {analysis['correlations']}\n"
-            f"- Unique Values per Column: {analysis['unique_values']}\n"
-            f"Generate a narrative describing the dataset, key insights, and recommended actions."
+            f"Perform the following task on the dataset: {task}\n"
+            "Here is the data summary:\n"
+            f"{json.dumps(summarize_data(data), indent=2)}"
         )
 
-        url = "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {API_TOKEN}",
+            "Authorization": os.getenv("AIPROXY_TOKEN")
         }
         payload = {
             "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}]
         }
-
-        response = requests.post(url, headers=headers, json=payload)
+        response = requests.post(
+            "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
+            headers=headers, json=payload
+        )
         response.raise_for_status()
-        narrative = response.json()["choices"][0]["message"]["content"]
-        logging.info("Narrative generated successfully.")
-        return narrative
+        results.append(response.json()['choices'][0]['message']['content'])
 
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to query LLM. Error: {e}")
-        raise RuntimeError(f"Failed to query LLM. Error: {e}")
+    # Save results to a text file
+    results_path = os.path.join(output_dir, "llm_task_results.txt")
+    with open(results_path, "w") as f:
+        f.write("\n\n".join(results))
 
-def save_report(analysis, narrative, charts, output_folder):
-    """Save the analysis and visualizations in a markdown report."""
-    logging.info("Saving report...")
-    report_path = os.path.join(output_folder, "README.md")
+    return results_path
+
+def generate_readme(summary, suggestions, image_paths, output_dir, task_results_path):
+    readme_content = f"""# Analysis Results
+
+## Summary
+
+- **Rows**: {summary['row_count']}
+- **Columns**: {summary['column_count']}
+- **Missing Values**:
+```
+{summary['missing_values']}
+```
+- **Data Types**:
+```
+{summary['data_types']}
+```
+
+## LLM Suggestions
+
+{suggestions}
+
+## Task Results
+
+Task results have been saved to [this file](./{os.path.basename(task_results_path)}).
+
+## Visualizations
+
+"""
+    for img in image_paths:
+        readme_content += f"![Visualization]({os.path.basename(img)})\n"
+
+    readme_path = os.path.join(output_dir, "README.md")
+    with open(readme_path, "w") as f:
+        f.write(readme_content)
+
+def analyze(file_path):
     try:
-        with open(report_path, "w") as f:
-            f.write("# Automated Data Analysis Report\n\n")
-            f.write("## Dataset Overview\n")
-            f.write(f"- Shape: {analysis['shape']}\n")
-            f.write(f"- Columns: {analysis['columns']}\n")
-            f.write(f"- Missing Values: {analysis['missing_values']}\n")
-            f.write("\n## Narrative\n")
-            f.write(narrative)
-            f.write("\n\n## Visualizations\n")
-            for chart in charts:
-                f.write(f"![{os.path.basename(chart)}]({chart})\n")
-        logging.info(f"Report saved to {report_path}")
-    except Exception as e:
-        logging.error(f"Failed to save the report. Error: {e}")
-        raise
+        # Create output directory
+        base_name = os.path.splitext(os.path.basename(file_path))[0]
+        output_dir = os.path.join(os.getcwd(), base_name)
+        os.makedirs(output_dir, exist_ok=True)
 
-def main():
-    """Main entry point for the script."""
+        # Detect file encoding
+        encoding = detect_file_encoding(file_path)
+
+        # Load data
+        data = load_data(file_path, encoding)
+
+        # Summarize data
+        summary = summarize_data(data)
+
+        # Create visualizations
+        image_paths = create_visualizations(data, output_dir)
+
+        # Query LLM for suggestions
+        suggestions = query_llm_for_suggestions(summary)
+
+        # Execute additional tasks suggested by LLM
+        tasks = [
+            "Identify significant patterns or trends in the data",
+            "Recommend data cleaning strategies based on missing values",
+            "Suggest clustering or segmentation methods if applicable"
+        ]
+        task_results_path = execute_llm_tasks(tasks, data, output_dir)
+
+        # Generate README
+        generate_readme(summary, suggestions, image_paths, output_dir, task_results_path)
+
+        print(f"Analysis completed. Results saved in: {output_dir}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+if __name__ == "__main__":
     if len(sys.argv) != 2:
-        logging.error("Usage: python autolysis.py <dataset.csv>")
+        print("Usage: uv run autolysis.py <dataset.csv>")
         sys.exit(1)
 
     dataset_path = sys.argv[1]
-    try:
-        output_folder = os.path.splitext(os.path.basename(dataset_path))[0]
-        os.makedirs(output_folder, exist_ok=True)
 
-        logging.info("Starting dataset analysis pipeline...")
-        df = load_dataset(dataset_path)
-        df = preprocess_data(df)
-        analysis = perform_analysis(df)
-        charts = visualize_data(df, output_folder)
-        narrative = query_llm(analysis)
-        save_report(analysis, narrative, charts, output_folder)
-
-        logging.info(f"Analysis pipeline completed successfully. Report generated in folder: {output_folder}")
-    except Exception as e:
-        logging.error(f"Error occurred: {e}")
+    if not os.path.exists(dataset_path):
+        print(f"Error: File '{dataset_path}' not found.")
         sys.exit(1)
 
-if __name__ == "__main__":
-    main()
+    analyze(dataset_path)
