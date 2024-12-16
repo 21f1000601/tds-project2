@@ -86,39 +86,7 @@ def query_llm_for_suggestions(summary):
     response.raise_for_status()
     return response.json()['choices'][0]['message']['content']
 
-def execute_llm_tasks(tasks, data, output_dir):
-    results = []
-
-    for task in tasks:
-        prompt = (
-            f"Perform the following task on the dataset: {task}\n"
-            "Here is the data summary:\n"
-            f"{json.dumps(summarize_data(data), indent=2)}"
-        )
-
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": os.getenv("AIPROXY_TOKEN")
-        }
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [{"role": "user", "content": prompt}]
-        }
-        response = requests.post(
-            "http://aiproxy.sanand.workers.dev/openai/v1/chat/completions",
-            headers=headers, json=payload
-        )
-        response.raise_for_status()
-        results.append(response.json()['choices'][0]['message']['content'])
-
-    # Save results to a text file
-    results_path = os.path.join(output_dir, "llm_task_results.txt")
-    with open(results_path, "w") as f:
-        f.write("\n\n".join(results))
-
-    return results_path
-
-def generate_readme(summary, suggestions, image_paths, output_dir, task_results_path):
+def generate_readme(summary, suggestions, image_paths, output_dir):
     readme_content = f"""# Analysis Results
 
 ## Summary
@@ -137,10 +105,6 @@ def generate_readme(summary, suggestions, image_paths, output_dir, task_results_
 ## LLM Suggestions
 
 {suggestions}
-
-## Task Results
-
-Task results have been saved to [this file](./{os.path.basename(task_results_path)}).
 
 ## Visualizations
 
@@ -174,16 +138,8 @@ def analyze(file_path):
         # Query LLM for suggestions
         suggestions = query_llm_for_suggestions(summary)
 
-        # Execute additional tasks suggested by LLM
-        tasks = [
-            "Identify significant patterns or trends in the data",
-            "Recommend data cleaning strategies based on missing values",
-            "Suggest clustering or segmentation methods if applicable"
-        ]
-        task_results_path = execute_llm_tasks(tasks, data, output_dir)
-
         # Generate README
-        generate_readme(summary, suggestions, image_paths, output_dir, task_results_path)
+        generate_readme(summary, suggestions, image_paths, output_dir)
 
         print(f"Analysis completed. Results saved in: {output_dir}")
 
