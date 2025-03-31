@@ -15,17 +15,22 @@ This project utilizes a Python script, `autolysis.py`, to perform automated data
 ## Setup and Installation
 1. Clone the repository:
 
+```shell
 git clone https://github.com/yourusername/project-repo.git
+```
 
 2. Install dependencies:
 
+```shell
 pip install -r requirements.txt
-
+```
 
 ## Usage
 To run the script, use the following command in the terminal:
 
+```shell
 python autolysis.py your_dataset.csv
+```
 
 Ensure that `your_dataset.csv` is the path to the CSV file you want to analyze.
 
